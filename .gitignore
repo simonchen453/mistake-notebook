@@ -1,0 +1,25 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+*.code-workspace
+
+# Maven
+target/
+*.jar
+*.war
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+dist/
+node_modules/
