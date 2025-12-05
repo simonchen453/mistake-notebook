@@ -1,30 +1,64 @@
 import { useState } from 'react';
 import { Form, Input, Button, Card, message, theme, Typography } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../context/authStore';
-import { login } from '../api/auth';
+import { login, type LoginRequest } from '../api/auth';
 
 const { Title, Text } = Typography;
 
 export default function Login() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { login: setAuth } = useAuthStore();
     const [loading, setLoading] = useState(false);
     const { token } = theme.useToken();
 
-    const onFinish = async (values: any) => {
+    const onFinish = async (values: { username: string; password: string }) => {
         setLoading(true);
         try {
-            const { data } = await login(values);
-            // Assuming data is { token: '...', user: { ... } } or just { token: '...' }
-            // Adjust based on actual backend response structure
-            setAuth(data.token, { username: values.username });
-            message.success('Welcome back!');
-            navigate('/');
+            const loginData: LoginRequest = {
+                userId: values.username,
+                password: values.password,
+                domain: 'system', // AdminPro 默认 domain
+            };
+            
+            const response = await login(loginData);
+            
+            // axios 拦截器已经处理了响应
+            // AdminPro 返回格式：{ restCode: '200', data: LoginResponse, success: true }
+            // 拦截器会返回 data 字段，所以 response 可能是 { data: LoginResponse } 或直接是 LoginResponse
+            const loginResponse = (response as any).data || response;
+            
+            // 保存 token 和用户信息
+            if (loginResponse.token) {
+                setAuth(loginResponse.token, {
+                    id: loginResponse.id,
+                    username: loginResponse.userId,
+                    realName: loginResponse.realName,
+                    avatarUrl: loginResponse.avatarUrl,
+                    mobileNo: loginResponse.mobileNo,
+                });
+            } else {
+                throw new Error('登录响应中缺少 token');
+            }
+            
+            message.success('登录成功！');
+            
+            // 跳转到 redirect 参数指定的页面，或默认首页
+            const redirect = searchParams.get('redirect') || '/';
+            navigate(redirect, { replace: true });
         } catch (error: any) {
-            const msg = error.response?.data?.error || 'Login failed. Please check your credentials.';
-            message.error(msg);
+            // 错误处理：优先使用后端返回的 message
+            let errorMsg = '登录失败，请检查用户名和密码';
+            
+            if (error?.response?.data?.message) {
+                errorMsg = error.response.data.message;
+            } else if (error?.message) {
+                errorMsg = error.message;
+            }
+            
+            message.error(errorMsg);
         } finally {
             setLoading(false);
         }

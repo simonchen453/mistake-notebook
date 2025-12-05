@@ -1,23 +1,51 @@
-
 import api from './axios';
 
-// Assuming AdminPro uses standard /admin/login or /sys/login. 
-// Based on typical AdminPro setups, it's often /api/auth/login or /sys/login.
-// Since the user said "adminpro", I'll try the common path.
-// If it's the framework I suspect, might be `/admin/auth/login`.
-// But user said "user, permission, role... use adminpro inside".
-// I will point to `/admin/login` for now and ask user to verify if they have a specific path.
-// Actually standard AdminPro often uses `/auth/login` or similar.
-// I will use `/sys/login` or similar if I can find a reference. 
-// Creating a safe guess.
+export interface LoginRequest {
+    userId: string;
+    password: string;
+    domain?: string;
+    captcha?: string;
+    captchaKey?: string;
+}
 
-export const login = async (data: any) => {
-    // Standard AdminPro usually exposes login at /auth/login or /sys/auth/login
-    // Let's try /auth/login as a generic guess, assuming standard controller.
-    return api.post('/auth/login', data);
+export interface LoginResponse {
+    id: string;
+    userId: string;
+    token: string;
+    realName?: string;
+    domain?: string;
+    avatarUrl?: string;
+    mobileNo?: string;
+    deptNo?: string;
+    deptName?: string;
+}
+
+/**
+ * 用户登录
+ * AdminPro 登录接口：POST /auth/login
+ */
+export const login = async (data: LoginRequest): Promise<LoginResponse> => {
+    // AdminPro 默认 domain 为 'system'
+    const loginData = {
+        userId: data.userId,
+        password: data.password,
+        domain: data.domain || 'system',
+        captcha: data.captcha,
+        captchaKey: data.captchaKey,
+    };
+    return api.post('/auth/login', loginData);
 };
 
+/**
+ * 用户登出
+ */
+export const logout = async (): Promise<void> => {
+    return api.post('/auth/logout');
+};
 
+/**
+ * 用户注册（如果支持）
+ */
 export const register = async (data: any) => {
     return api.post('/auth/register', data);
 };
