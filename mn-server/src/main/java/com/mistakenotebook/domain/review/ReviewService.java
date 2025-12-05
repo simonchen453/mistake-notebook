@@ -1,6 +1,7 @@
 package com.mistakenotebook.domain.review;
 
 import com.adminpro.framework.base.entity.BaseService;
+import com.mistakenotebook.ai.GeminiService;
 import com.mistakenotebook.domain.mistake.MistakeDao;
 import com.mistakenotebook.domain.mistake.MistakeEntity;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,9 @@ public class ReviewService extends BaseService<ReviewRecordEntity, String> {
 
     @Autowired
     private MistakeDao mistakeDao;
+
+    @Autowired
+    private GeminiService geminiService;
 
     @Autowired
     protected ReviewService(ReviewRecordDao dao) {
@@ -68,7 +72,7 @@ public class ReviewService extends BaseService<ReviewRecordEntity, String> {
     }
 
     /**
-     * 计算下次复习时间
+     * 计算下次复习时间（智能优化版）
      */
     private LocalDateTime calculateNextReviewTime(int reviewCount, String result) {
         int intervalIndex;
@@ -83,6 +87,85 @@ public class ReviewService extends BaseService<ReviewRecordEntity, String> {
 
         int days = EBBINGHAUS_INTERVALS[intervalIndex];
         return LocalDateTime.now().plusDays(days);
+    }
+
+    /**
+     * 智能优化复习计划
+     */
+    public String optimizeReviewPlan(String userId) {
+        List<MistakeEntity> mistakes = mistakeDao.findByUserId(userId);
+        if (mistakes.isEmpty()) {
+            return "暂无错题数据";
+        }
+
+        List<ReviewRecordEntity> reviewHistory = getUserReviewRecords(userId);
+        
+        StringBuilder reviewData = new StringBuilder();
+        reviewData.append(String.format("总错题数: %d\n", mistakes.size()));
+        reviewData.append(String.format("总复习次数: %d\n", reviewHistory.size()));
+        
+        long masteredCount = mistakes.stream()
+                .filter(m -> "mastered".equals(m.getMasteryStatus()))
+                .count();
+        reviewData.append(String.format("已掌握: %d\n", masteredCount));
+        
+        long needReviewCount = mistakes.stream()
+                .filter(m -> m.getNextReviewTime() != null 
+                        && m.getNextReviewTime().isBefore(LocalDateTime.now()))
+                .count();
+        reviewData.append(String.format("待复习: %d\n", needReviewCount));
+
+        String prompt = String.format("""
+                请根据以下复习数据，优化复习计划：
+                
+                %s
+                
+                请提供：
+                1. 复习时间安排建议（每天复习多少道题）
+                2. 复习优先级建议（哪些错题需要优先复习）
+                3. 复习方法建议（如何提高复习效率）
+                4. 长期规划（如何系统性地掌握所有错题）
+                """,
+                reviewData.toString());
+        
+        return geminiService.chat(prompt, null);
+    }
+
+    /**
+     * 智能推荐复习难度
+     */
+    public String recommendDifficulty(String mistakeId) {
+        MistakeEntity mistake = mistakeDao.findById(mistakeId);
+        if (mistake == null) {
+            return "错题不存在";
+        }
+
+        List<ReviewRecordEntity> history = getReviewHistory(mistakeId);
+        
+        StringBuilder historyInfo = new StringBuilder();
+        historyInfo.append(String.format("当前掌握度: %d%%\n", mistake.getMasteryLevel() != null ? mistake.getMasteryLevel() : 0));
+        historyInfo.append(String.format("复习次数: %d\n", mistake.getReviewCount() != null ? mistake.getReviewCount() : 0));
+        historyInfo.append(String.format("当前状态: %s\n", mistake.getMasteryStatus() != null ? mistake.getMasteryStatus() : "未掌握"));
+        
+        if (!history.isEmpty()) {
+            ReviewRecordEntity lastReview = history.get(history.size() - 1);
+            historyInfo.append(String.format("上次复习结果: %s\n", lastReview.getReviewResult() != null ? lastReview.getReviewResult() : "未知"));
+        }
+
+        String prompt = String.format("""
+                请根据以下错题复习情况，推荐合适的复习难度和方式：
+                
+                %s
+                
+                请提供：
+                1. 推荐复习难度（简单/中等/困难）
+                2. 推荐复习方式（快速回顾/详细分析/变式练习）
+                3. 预期复习时间（预计需要多长时间）
+                4. 复习重点（应该重点关注哪些方面）
+                """,
+                historyInfo.toString());
+        
+        return geminiService.chat(prompt, null);
     }
 
     /**

@@ -39,6 +39,6 @@ public class ChapterEntity extends BaseAuditEntity {
     @Column(name = COL_NAME, type = Column.Type.STRING)
     private String name;
 
-    @Column(name = COL_SORT_ORDER, type = Column.Type.INTEGER)
+    @Column(name = COL_SORT_ORDER, type = Column.Type.INT)
     private Integer sortOrder;
 }

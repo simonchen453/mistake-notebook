@@ -47,7 +47,7 @@ public class ReviewRecordEntity extends BaseAuditEntity {
     @Column(name = COL_REVIEW_RESULT, type = Column.Type.STRING)
     private String reviewResult;
 
-    @Column(name = COL_REVIEW_COUNT, type = Column.Type.INTEGER)
+    @Column(name = COL_REVIEW_COUNT, type = Column.Type.INT)
     private Integer reviewCount;
 
     @Column(name = COL_NEXT_REVIEW_TIME, type = Column.Type.DATE)

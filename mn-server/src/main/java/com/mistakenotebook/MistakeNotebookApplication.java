@@ -2,6 +2,7 @@ package com.mistakenotebook;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
@@ -9,10 +10,13 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * 
  * @author simon
  */
-@SpringBootApplication(scanBasePackages = {
-        "com.mistakenotebook",
-        "com.adminpro"
-})
+@SpringBootApplication(
+        scanBasePackages = {
+                "com.mistakenotebook",
+                "com.adminpro"
+        },
+        exclude = {RedisAutoConfiguration.class}
+)
 @EnableScheduling
 public class MistakeNotebookApplication {
 

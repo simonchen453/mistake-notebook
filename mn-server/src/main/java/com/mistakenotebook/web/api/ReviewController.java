@@ -64,6 +64,26 @@ public class ReviewController {
         return R.ok(reviewService.getReviewHistory(mistakeId));
     }
 
+    /**
+     * 智能优化复习计划
+     */
+    @GetMapping("/optimize-plan")
+    @PreAuthorize("@ss.hasPermission('review:manage')")
+    public R<Map<String, String>> optimizeReviewPlan(@RequestParam String userId) {
+        String plan = reviewService.optimizeReviewPlan(userId);
+        return R.ok(Map.of("plan", plan));
+    }
+
+    /**
+     * 智能推荐复习难度
+     */
+    @GetMapping("/recommend-difficulty/{mistakeId}")
+    @PreAuthorize("@ss.hasPermission('review:manage')")
+    public R<Map<String, String>> recommendDifficulty(@PathVariable String mistakeId) {
+        String recommendation = reviewService.recommendDifficulty(mistakeId);
+        return R.ok(Map.of("recommendation", recommendation));
+    }
+
     @Data
     public static class ReviewRequest {
         private String mistakeId;

@@ -35,6 +35,6 @@ public class SubjectEntity extends BaseAuditEntity {
     @Column(name = COL_ICON, type = Column.Type.STRING)
     private String icon;
 
-    @Column(name = COL_SORT_ORDER, type = Column.Type.INTEGER)
+    @Column(name = COL_SORT_ORDER, type = Column.Type.INT)
     private Integer sortOrder;
 }

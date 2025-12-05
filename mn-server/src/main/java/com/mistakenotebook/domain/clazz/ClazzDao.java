@@ -19,9 +19,4 @@ public class ClazzDao extends BaseDao<ClazzEntity, String> {
         select.addWhereAnd(ClazzEntity.COL_TEACHER_ID + " = ?", teacherId);
         return execute(select);
     }
-
-    public List<ClazzEntity> findAll() {
-        SelectBuilder<ClazzEntity> select = new SelectBuilder<>(ClazzEntity.class);
-        return execute(select);
-    }
 }

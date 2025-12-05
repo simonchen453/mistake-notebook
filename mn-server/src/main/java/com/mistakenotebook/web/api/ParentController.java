@@ -80,7 +80,7 @@ public class ParentController {
         }
 
         SearchParam param = new SearchParam();
-        param.setPageNumber(page);
+        param.setPageNo(page);
         param.setPageSize(size);
         param.addFilter("userId", studentId);
 

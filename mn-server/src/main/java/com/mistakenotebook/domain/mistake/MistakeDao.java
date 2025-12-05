@@ -5,8 +5,11 @@ import com.adminpro.framework.jdbc.SearchParam;
 import com.adminpro.framework.jdbc.query.QueryResultSet;
 import com.adminpro.framework.jdbc.sqlbuilder.SelectBuilder;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -109,24 +112,42 @@ public class MistakeDao extends BaseDao<MistakeEntity, String> {
     }
 
     /**
-     * 按科目统计
+     * 按科目统计（优化版：使用数据库 GROUP BY）
      */
     public List<Object[]> getStatsBySubject(String userId) {
-        String sql = "SELECT " + MistakeEntity.COL_SUBJECT_ID + ", COUNT(*) " +
-                "FROM " + MistakeEntity.TABLE_NAME +
-                " WHERE " + MistakeEntity.COL_USER_ID + " = ? " +
-                "GROUP BY " + MistakeEntity.COL_SUBJECT_ID;
-        return getJdbcTemplate().query(sql, (rs, i) -> new Object[] { rs.getString(1), rs.getLong(2) }, userId);
+        String sql = "SELECT " + MistakeEntity.COL_SUBJECT_ID + ", COUNT(*) as count " + "FROM " + MistakeEntity.TABLE_NAME;
+        SelectBuilder<Object[]> select = new SelectBuilder<>(new RowMapper<Object[]>() {
+            @Override
+            public Object[] mapRow(ResultSet rs, int rowNum) throws SQLException {
+                return new Object[]{rs.getString(1), rs.getLong(2)
+                };
+            }
+        });
+        
+        select.setQuery(sql);
+        select.addWhereAnd(MistakeEntity.COL_USER_ID + " = ? ", userId);
+        select.addWhereAnd(MistakeEntity.COL_SUBJECT_ID + " IS NOT NULL ");
+        select.addGroupBy(MistakeEntity.COL_SUBJECT_ID);
+        return execute(select);
     }
 
     /**
-     * 按错误原因统计
+     * 按错误原因统计（优化版：使用数据库 GROUP BY）
      */
     public List<Object[]> getStatsByErrorReason(String userId) {
-        String sql = "SELECT " + MistakeEntity.COL_ERROR_REASON + ", COUNT(*) " +
-                "FROM " + MistakeEntity.TABLE_NAME +
-                " WHERE " + MistakeEntity.COL_USER_ID + " = ? " +
-                "GROUP BY " + MistakeEntity.COL_ERROR_REASON;
-        return getJdbcTemplate().query(sql, (rs, i) -> new Object[] { rs.getString(1), rs.getLong(2) }, userId);
+        String sql = "SELECT " + MistakeEntity.COL_ERROR_REASON + ", COUNT(*) as count " + "FROM " + MistakeEntity.TABLE_NAME;
+        SelectBuilder<Object[]> select = new SelectBuilder<>(new RowMapper<Object[]>() {
+            @Override
+            public Object[] mapRow(ResultSet rs, int rowNum) throws SQLException {
+                return new Object[]{rs.getString(1), rs.getLong(2)
+                };
+            }
+        });
+        
+        select.setQuery(sql);
+        select.addWhereAnd(MistakeEntity.COL_USER_ID + " = ? ", userId);
+        select.addWhereAnd(MistakeEntity.COL_ERROR_REASON + " IS NOT NULL ");
+        select.addGroupBy(MistakeEntity.COL_ERROR_REASON);
+        return execute(select);
     }
 }

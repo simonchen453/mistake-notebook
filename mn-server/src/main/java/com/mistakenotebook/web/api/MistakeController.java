@@ -38,7 +38,7 @@ public class MistakeController {
     @PostMapping("/list")
     public R<QueryResultSet<MistakeEntity>> list(@RequestBody SearchForm searchForm) {
         SearchParam param = new SearchParam();
-        param.setPageNumber(searchForm.getPageNumber());
+        param.setPageNo(searchForm.getPageNo());
         param.setPageSize(searchForm.getPageSize());
 
         if (StringUtils.isNotEmpty(searchForm.getUserId())) {
@@ -156,6 +156,63 @@ public class MistakeController {
         return R.ok(Map.of(
                 "bySubject", bySubject,
                 "byErrorReason", byErrorReason));
+    }
+
+    /**
+     * AI重新分类错误原因
+     */
+    @PostMapping("/{id}/reclassify")
+    @PreAuthorize("@ss.hasPermission('mistake:ai')")
+    public R<Map<String, String>> reclassifyErrorReason(@PathVariable String id) {
+        String reason = mistakeService.reclassifyErrorReason(id);
+        return R.ok(Map.of("errorReason", reason));
+    }
+
+    /**
+     * 错题趋势预测
+     */
+    @GetMapping("/predict-trend")
+    @PreAuthorize("@ss.hasPermission('mistake:ai')")
+    public R<Map<String, String>> predictErrorTrend(@RequestParam String userId) {
+        String prediction = mistakeService.predictErrorTrend(userId);
+        return R.ok(Map.of("prediction", prediction));
+    }
+
+    /**
+     * 知识点关联分析
+     */
+    @GetMapping("/analyze-knowledge")
+    @PreAuthorize("@ss.hasPermission('mistake:ai')")
+    public R<Map<String, String>> analyzeKnowledgeRelation(
+            @RequestParam String userId,
+            @RequestParam(required = false) String subjectId) {
+        String analysis = mistakeService.analyzeKnowledgeRelation(userId, subjectId);
+        return R.ok(Map.of("analysis", analysis));
+    }
+
+    /**
+     * 生成变式题
+     */
+    @GetMapping("/{id}/variants")
+    @PreAuthorize("@ss.hasPermission('mistake:ai')")
+    public R<Map<String, String>> generateVariantQuestions(
+            @PathVariable String id,
+            @RequestParam(defaultValue = "3") int count) {
+        String questions = mistakeService.generateVariantQuestions(id, count);
+        return R.ok(Map.of("questions", questions));
+    }
+
+    /**
+     * 生成巩固练习
+     */
+    @GetMapping("/practice")
+    @PreAuthorize("@ss.hasPermission('mistake:ai')")
+    public R<Map<String, String>> generatePracticeQuestions(
+            @RequestParam String knowledgePointId,
+            @RequestParam(required = false) String difficulty,
+            @RequestParam(defaultValue = "5") int count) {
+        String questions = mistakeService.generatePracticeQuestions(knowledgePointId, difficulty, count);
+        return R.ok(Map.of("questions", questions));
     }
 
     @Data
