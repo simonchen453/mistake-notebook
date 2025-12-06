@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Form, Input, Button, Card, message, theme, Typography } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../context/authStore';
 import { login, type LoginRequest } from '../api/auth';
+import Captcha, { type CaptchaRef } from '../components/Captcha';
 
 const { Title, Text } = Typography;
 
@@ -12,25 +13,26 @@ export default function Login() {
     const [searchParams] = useSearchParams();
     const { login: setAuth } = useAuthStore();
     const [loading, setLoading] = useState(false);
+    const [captchaKey, setCaptchaKey] = useState<string>('');
+    const captchaRef = useRef<CaptchaRef>(null);
     const { token } = theme.useToken();
+    const [form] = Form.useForm();
 
-    const onFinish = async (values: { username: string; password: string }) => {
+    const onFinish = async (values: { username: string; password: string; captcha: string }) => {
         setLoading(true);
         try {
             const loginData: LoginRequest = {
                 userId: values.username,
                 password: values.password,
-                domain: 'system', // AdminPro 默认 domain
+                domain: 'system',
+                captcha: values.captcha,
+                captchaKey: captchaKey,
             };
             
             const response = await login(loginData);
             
-            // axios 拦截器已经处理了响应
-            // AdminPro 返回格式：{ restCode: '200', data: LoginResponse, success: true }
-            // 拦截器会返回 data 字段，所以 response 可能是 { data: LoginResponse } 或直接是 LoginResponse
             const loginResponse = (response as any).data || response;
             
-            // 保存 token 和用户信息
             if (loginResponse.token) {
                 setAuth(loginResponse.token, {
                     id: loginResponse.id,
@@ -45,12 +47,10 @@ export default function Login() {
             
             message.success('登录成功！');
             
-            // 跳转到 redirect 参数指定的页面，或默认首页
             const redirect = searchParams.get('redirect') || '/';
             navigate(redirect, { replace: true });
         } catch (error: any) {
-            // 错误处理：优先使用后端返回的 message
-            let errorMsg = '登录失败，请检查用户名和密码';
+            let errorMsg = '登录失败，请检查用户名、密码和验证码';
             
             if (error?.response?.data?.message) {
                 errorMsg = error.response.data.message;
@@ -59,6 +59,11 @@ export default function Login() {
             }
             
             message.error(errorMsg);
+            
+            if (captchaRef.current) {
+                captchaRef.current.refresh();
+            }
+            form.setFieldsValue({ captcha: '' });
         } finally {
             setLoading(false);
         }
@@ -127,6 +132,7 @@ export default function Login() {
                 </div>
 
                 <Form
+                    form={form}
                     name="login"
                     initialValues={{ remember: true }}
                     onFinish={onFinish}
@@ -152,6 +158,42 @@ export default function Login() {
                             placeholder="Password"
                             style={{ borderRadius: 8 }}
                         />
+                    </Form.Item>
+
+                    <Form.Item
+                        name="captcha"
+                        rules={[{ required: true, message: 'Please input the captcha!' }]}
+                    >
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <Input
+                                prefix={<SafetyOutlined style={{ color: token.colorTextQuaternary }} />}
+                                placeholder="Captcha"
+                                style={{ flex: 1, borderRadius: 8 }}
+                            />
+                            <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '1px solid #d9d9d9',
+                                borderRadius: 8,
+                                overflow: 'hidden',
+                                backgroundColor: '#fff',
+                                transition: 'border-color 0.3s ease',
+                                flexShrink: 0
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = '#40a9ff';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = '#d9d9d9';
+                            }}
+                            >
+                                <Captcha
+                                    ref={captchaRef}
+                                    onCaptchaChange={setCaptchaKey}
+                                />
+                            </div>
+                        </div>
                     </Form.Item>
 
                     <Form.Item>
